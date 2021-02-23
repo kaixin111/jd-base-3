@@ -25,7 +25,7 @@ ShellURL=https://github.com/RikudouPatrickstar/jd-base
 
 ## 更新shell脚本
 function Git_PullShell {
-  # echo -e "更新shell脚本，原地址：${ShellURL}\n"
+  echo -e "更新 jd-base 脚本\n"
   cd ${ShellDir}
   git fetch --all
   ExitStatusShell=$?
@@ -55,7 +55,7 @@ function Update_Cron {
 
 ## 克隆scripts
 function Git_CloneScripts {
-  # echo -e "克隆LXK9301脚本，原地址：${ScriptsURL}\n"
+  echo -e "克隆 jd_scripts 脚本\n"
   git clone -b master ${ScriptsURL} ${ScriptsDir}
   ExitStatusScripts=$?
   echo
@@ -63,7 +63,7 @@ function Git_CloneScripts {
 
 ## 更新scripts
 function Git_PullScripts {
-  # echo -e "更新LXK9301脚本，原地址：${ScriptsURL}\n"
+  echo -e "更新 jd_scripts 脚本，原地址\n"
   cd ${ScriptsDir}
   git fetch --all
   ExitStatusScripts=$?
@@ -153,8 +153,8 @@ function Notify_Version {
   if [ -f ${FileConf} ] && [[ "${VerConf}" != "${VerConfSample}" ]] && [[ ${UpdateDate} == $(date "+%Y-%m-%d") ]]
   then
     if [ ! -f ${SendCount} ]; then
-      echo -e "检测到配置文件config.sh.sample有更新\n\n更新日期: ${UpdateDate}\n当前版本: ${VerConf}\n新的版本: ${VerConfSample}\n更新内容: ${UpdateContent}\n如需使用新功能请对照config.sh.sample，将相关新参数手动增加到你自己的config.sh中，否则请无视本消息。\n" | tee ${ContentVersion}
-      echo -e "本消息只在该新版本配置文件更新当天发送一次。" >> ${ContentVersion}
+      echo -e "检测到配置文件config.sh.sample有更新\n\n更新日期: ${UpdateDate}\n当前版本: ${VerConf}\n新的版本: ${VerConfSample}\n更新内容: ${UpdateContent}\n" | tee ${ContentVersion}
+      echo -e "如需使用新功能请对照config.sh.sample，将相关新参数手动增加到你自己的config.sh中。\n本消息只在该新版本配置文件更新当天发送一次" >> ${ContentVersion}
       cd ${ShellDir}
       node update.js
       if [ $? -eq 0 ]; then
@@ -197,13 +197,13 @@ function Npm_Install {
     Npm_InstallSub
     if [ $? -ne 0 ]; then
       echo -e "\nnpm install 运行不成功，自动删除 ${ScriptsDir}/node_modules...\n"
-      echo -e "请进入 ${ScriptsDir} 目录后按照wiki教程手动运行 npm install...\n"
+      echo -e "请进入 ${ScriptsDir} 目录后手动运行 npm install...\n"
       echo -e "当 npm install 失败时，如果检测到有新任务或失效任务，只会输出日志，不会自动增加或删除定时任务...\n"
-      echo -e "3...\n"
+      echo -e "3\n"
       sleep 1
-      echo -e "2...\n"
+      echo -e "2\n"
       sleep 1
-      echo -e "1...\n"
+      echo -e "1\n"
       sleep 1
       rm -rf ${ScriptsDir}/node_modules
     fi
@@ -229,7 +229,7 @@ function Output_ListJsDrop {
 }
 
 ## 自动删除失效的脚本与定时任务，需要5个条件：1.AutoDelCron 设置为 true；2.正常更新js脚本，没有报错；3.js-drop.list不为空；4.crontab.list存在并且不为空；5.已经正常运行过npm install
-## 检测 jd_scripts 远程仓库中的 docker/crontab_list.sh
+## 检测 jd_scripts 仓库中的 docker/crontab_list.sh
 ## 如果检测到某个定时任务在上述检测文件中已删除，那么在本地也删除对应定时任务
 function Del_Cron {
   if [ "${AutoDelCron}" = "true" ] && [ -s ${ListJsDrop} ] && [ -s ${ListCron} ] && [ -d ${ScriptsDir}/node_modules ]; then
@@ -246,14 +246,14 @@ function Del_Cron {
     crontab -l
     echo -e "\n--------------------------------------------------------------\n"
     if [ -d ${ScriptsDir}/node_modules ]; then
-      echo -e "删除失效的定时任务：\n\n${JsDrop}" > ${ContentDropTask}
+      echo -e "成功删除失效的定时任务：\n\n${JsDrop}\n" > ${ContentDropTask}
       Notify_DropTask
     fi
   fi
 }
 
 ## 自动增加新的定时任务，需要5个条件：1.AutoAddCron 设置为 true；2.正常更新js脚本，没有报错；3.js-add.list不为空；4.crontab.list存在并且不为空；5.已经正常运行过npm install
-## 检测 jd_scripts 远程仓库中的 docker/crontab_list.sh
+## 检测 jd_scripts 仓库中的 docker/crontab_list.sh
 ## 如果检测到检测文件中增加新的定时任务，那么在本地也增加
 ## 本功能生效时，会自动从检测文件新增加的任务中读取时间，该时间为北京时间
 function Add_Cron {
@@ -302,18 +302,28 @@ if [ "${TZ}" = "UTC" ]; then
   echo -n "北京时间："
   echo $(date -d "8 hour" "+%Y-%m-%d %H:%M:%S")
 fi
-echo -e "\nJS脚本目录：${ScriptsDir}\n"
 echo -e "--------------------------------------------------------------\n"
 
 ## 更新shell脚本、检测配置文件版本并将sample/config.sh.sample复制到config目录下
-Git_PullShell
-
-## 更新crontab
-[[ $(date "+%-H") -le 2 ]] && Update_Cron
+Git_PullShell && Update_Cron
+VerConfSample=$(grep " Version: " ${FileConfSample} | perl -pe "s|.+v((\d+\.?){3})|\1|")
+[ -f ${FileConf} ] && VerConf=$(grep " Version: " ${FileConf} | perl -pe "s|.+v((\d+\.?){3})|\1|")
+if [ ${ExitStatusShell} -eq 0 ]
+then
+  echo -e "\nshell脚本更新完成...\n"
+  if [ -n "${JD_DIR}" ] && [ -d ${ConfigDir} ]; then
+    cp -f ${FileConfSample} ${ConfigDir}/config.sh.sample
+  fi
+else
+  echo -e "\nshell脚本更新失败，请检查原因后再次运行git_pull.sh，或等待定时任务自动再次运行git_pull.sh...\n"
+fi
 
 ## 克隆或更新js脚本
-[ -f ${ScriptsDir}/package.json ] && PackageListOld=$(cat ${ScriptsDir}/package.json)
-[ -d ${ScriptsDir}/.git ] && Git_PullScripts || Git_CloneScripts
+if [ ${ExitStatusShell} -eq 0 ]; then
+  echo -e "--------------------------------------------------------------\n"
+  [ -f ${ScriptsDir}/package.json ] && PackageListOld=$(cat ${ScriptsDir}/package.json)
+  [ -d ${ScriptsDir}/.git ] && Git_PullScripts || Git_CloneScripts
+fi
 
 sed -i '/本脚本开源免费使用 By/d' ${ScriptsDir}/sendNotify.js
 
